@@ -1,38 +1,52 @@
-from pymilvus import Collection, CollectionSchema, FieldSchema, DataType, connections
+from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection
+from transformers import BertTokenizer, BertModel
+import torch
+import numpy as np
 
-# Milvus 연결 설정
+# Connect to Milvus
 def connect_milvus():
-    connections.connect("default", host="localhost", port="19530")
+    connections.connect("default", host='localhost', port='19530')
 
-# 컬렉션 생성
-def create_collection():
-    connect_milvus()
-    if not utility.has_collection("issue_collection"):
-        fields = [
-            FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
-            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=768),
-            FieldSchema(name="label", dtype=DataType.INT64)
-        ]
-        schema = CollectionSchema(fields, "issue collection")
-        collection = Collection(name="issue_collection", schema=schema)
-
-# 벡터 삽입
-def insert_vectors(vectors, labels):
-    connect_milvus()
-    collection = Collection("issue_collection")
-    entities = [
-        vectors.tolist(),
-        labels
+# Initialize Milvus collection
+def initialize_collection():
+    fields = [
+        FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=768),
+        FieldSchema(name="description_id", dtype=DataType.INT64, is_primary=True, auto_id=True)
     ]
-    collection.insert(entities)
+    schema = CollectionSchema(fields, "issue_collection")
+    collection = Collection(name="issue_collection", schema=schema)
+    collection.create_index(field_name="embedding", index_params={"index_type": "IVF_FLAT", "metric_type": "L2", "params": {}})
     collection.load()
+    return collection
 
-# 이슈 및 레이블 가져오기
-def get_issues_and_labels():
-    # 데이터베이스에서 이슈와 레이블을 가져오는 코드
-    pass
+# Insert embeddings into Milvus
+def insert_embeddings(collection, descriptions):
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    model = BertModel.from_pretrained('bert-base-uncased')
+    
+    inputs = tokenizer(descriptions, return_tensors="pt", padding=True, truncation=True, max_length=512)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        embeddings = outputs.last_hidden_state[:, 0, :].numpy()  # Use the [CLS] token's embeddings
+    
+    collection.insert([embeddings.tolist()])
 
-# 새로운 이슈 및 레이블 가져오기
-def get_new_issues_and_labels():
-    # 데이터베이스에서 새로운 이슈와 레이블을 가져오는 코드
-    pass
+# Search similar issues in Milvus
+def search_similar_issues(collection, description, top_k=5):
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    model = BertModel.from_pretrained('bert-base-uncased')
+    
+    inputs = tokenizer(description, return_tensors="pt", padding=True, truncation=True, max_length=512)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        query_embedding = outputs.last_hidden_state[:, 0, :].numpy()
+    
+    search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
+    results = collection.search([query_embedding.tolist()], "embedding", search_params, limit=top_k)
+    
+    similar_issues = [(result.id, 100 - result.distance) for result in results[0]]  # Calculate similarity percentage
+    return similar_issues
+
+# Disconnect from Milvus
+def disconnect_milvus():
+    connections.disconnect()
