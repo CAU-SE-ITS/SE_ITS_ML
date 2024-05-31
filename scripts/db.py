@@ -19,12 +19,18 @@ def initialize_collection():
     collection.load()
     return collection
 
+# Concatenate fields into a single string
+def concatenate_fields(title, description, category, priority):
+    return f"Title: {title}. Description: {description}. Category: {category}. Priority: {priority}."
+
 # Insert embeddings into Milvus
-def insert_embeddings(collection, descriptions):
+def insert_embeddings(collection, issues):
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     model = BertModel.from_pretrained('bert-base-uncased')
     
-    inputs = tokenizer(descriptions, return_tensors="pt", padding=True, truncation=True, max_length=512)
+    texts = [concatenate_fields(issue['title'], issue['description'], issue['category'], issue['priority']) for issue in issues]
+    
+    inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=512)
     with torch.no_grad():
         outputs = model(**inputs)
         embeddings = outputs.last_hidden_state[:, 0, :].numpy()  # Use the [CLS] token's embeddings
@@ -32,11 +38,12 @@ def insert_embeddings(collection, descriptions):
     collection.insert([embeddings.tolist()])
 
 # Search similar issues in Milvus
-def search_similar_issues(collection, description, top_k=5):
+def search_similar_issues(collection, issue, top_k=5):
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     model = BertModel.from_pretrained('bert-base-uncased')
     
-    inputs = tokenizer(description, return_tensors="pt", padding=True, truncation=True, max_length=512)
+    text = concatenate_fields(issue['title'], issue['description'], issue['category'], issue['priority'])
+    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
     with torch.no_grad():
         outputs = model(**inputs)
         query_embedding = outputs.last_hidden_state[:, 0, :].numpy()
