@@ -2,6 +2,7 @@ import pandas as pd
 from transformers import BertTokenizer, BertModel
 from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection
 import torch
+import numpy as np
 
 # Load the dataset
 file_path = '/mnt/data/sev.csv'
