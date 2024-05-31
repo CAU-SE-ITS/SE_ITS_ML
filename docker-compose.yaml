@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.4.13
+    environment:
+      ETCD_AUTO_COMPACTION_RETENTION: '1'
+      ETCD_QUOTA_BACKEND_BYTES: '4294967296'
+    volumes:
+      - ./volumes/etcd:/etcd_data
+    container_name: milvus-etcd
+  minio:
+    image: minio/minio:latest
+    command: server /minio_data
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - ./volumes/minio:/minio_data
+    ports:
+      - "9000:9000"
+    container_name: milvus-minio
+  milvus:
+    image: milvusdb/milvus:latest
+    ports:
+      - "19530:19530"
+    volumes:
+      - ./volumes/milvus:/milvus
+    command: /var/lib/milvus/scripts/docker-entrypoint.sh
+    depends_on:
+      - etcd
+      - minio
+    container_name: milvus
