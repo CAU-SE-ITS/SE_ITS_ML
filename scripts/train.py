@@ -1,9 +1,10 @@
 import pandas as pd
 import re
-from datasets import Dataset, load_metric
-from transformers import BertTokenizer, BertModel, Trainer, TrainingArguments, DataCollatorWithPadding
+from torch.utils.data import DataLoader, Dataset
+from transformers import BertTokenizer, BertModel
 import torch
-import numpy as np
+import torch.optim as optim
+from tqdm import tqdm
 
 # CSV 파일 로드
 data = pd.read_csv('./data/sev.csv')
@@ -18,68 +19,76 @@ def preprocess_text(text):
     return text
 
 # 데이터 전처리
-data['description'] = data['description'].apply(preprocess_text)
-data = data.rename(columns={'severity': 'priority'})  # severity를 priority로 변경
+data['description'] = data['Description'].apply(preprocess_text)
+data = data.rename(columns={'Severity': 'priority'})  # severity를 priority로 변경
 
-# 데이터셋 만들기
-dataset = Dataset.from_pandas(data[['description', 'priority']])
+# 새로운 텍스트 생성
+data['combined_text'] = "Description: " + data['Description'] + " Priority: " + data['priority'].astype(str)
 
-# 토크나이저 로드
+# 커스텀 데이터셋 클래스
+class CustomDataset(Dataset):
+    def __init__(self, texts, tokenizer, max_len):
+        self.texts = texts
+        self.tokenizer = tokenizer
+        self.max_len = max_len
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        text = self.texts[idx]
+        encoding = self.tokenizer(
+            text,
+            truncation=True,
+            padding='max_length',
+            max_length=self.max_len,
+            return_tensors='pt'
+        )
+        return {
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten()
+        }
+
+# 토크나이저 및 모델 로드
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
-# 데이터 토큰화 함수
-def tokenize_function(examples):
-    return tokenizer(examples['description'], padding="max_length", truncation=True, max_length=512)
-
-# 데이터 토큰화
-tokenized_datasets = dataset.map(tokenize_function, batched=True)
-
-# 데이터셋 포맷 변환
-tokenized_datasets = tokenized_datasets.remove_columns(["description"])
-tokenized_datasets = tokenized_datasets.rename_column("priority", "labels")
-tokenized_datasets.set_format("torch")
-
-# 데이터셋 분리
-train_test_split = tokenized_datasets.train_test_split(test_size=0.2)
-train_dataset = train_test_split['train']
-test_dataset = train_test_split['test']
-
-# 데이터 콜레이터
-data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
-
-# 모델 로드
 model = BertModel.from_pretrained('bert-base-uncased')
 
-# 훈련 인수 설정
-training_args = TrainingArguments(
-    output_dir='./results',
-    evaluation_strategy="epoch",
-    learning_rate=2e-5,
-    per_device_train_batch_size=8,
-    per_device_eval_batch_size=8,
-    num_train_epochs=3,
-    weight_decay=0.01,
-)
+# 데이터셋 생성
+train_texts = data['combined_text'].tolist()
 
-# Trainer 정의
-class CustomTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
-        labels = inputs.pop("labels")
-        outputs = model(**inputs)
-        loss = torch.nn.functional.mse_loss(outputs.last_hidden_state[:, 0, :], labels)
-        return (loss, outputs) if return_outputs else loss
-
-trainer = CustomTrainer(
-    model=model,
-    args=training_args,
-    train_dataset=train_dataset,
-    eval_dataset=test_dataset,
+train_dataset = CustomDataset(
+    texts=train_texts,
     tokenizer=tokenizer,
-    data_collator=data_collator,
+    max_len=512
 )
 
-# 모델 훈련
-trainer.train()
+train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+
+# 옵티마이저 설정
+optimizer = optim.AdamW(model.parameters(), lr=2e-5)
+
+# 훈련 루프
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = model.to(device)
+
+for epoch in range(5):
+    model.train()
+    total_loss = 0
+
+    for batch in tqdm(train_loader):
+        optimizer.zero_grad()
+        
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+        embeddings = outputs.last_hidden_state[:, 0, :]  # [CLS] 토큰의 임베딩 추출
+        
+        # 그냥 임베딩 추출을 목적으로 하기 때문에 손실 계산과 역전파 과정은 생략합니다.
+        
+        # 필요시 임베딩을 사용해 추가 작업 수행
+        
+    print(f"Epoch {epoch+1} completed")
 
 # 모델 저장
 model.save_pretrained('./model')
