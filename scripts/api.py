@@ -12,6 +12,7 @@ API_KEY = 'f9da5978-37e0-4044-855f-9fdd04cd7a03'  # 실제 API 키로 교체
 os.environ["PINECONE_API_KEY"] = API_KEY
 
 pc = Pinecone(api_key=API_KEY)
+
 index_name = 'its'
 
 index = pc.Index(index_name)
@@ -41,12 +42,12 @@ def search_similar_issues(issue, top_k=5):
     return similar_issues, query_embedding
 
 def insert_issue(issue_id, embedding):
-    index.upsert([(issue_id, embedding)])
+    index.upsert([(str(issue_id), embedding)])  # issue_id를 문자열로 변환
 
 @app.route('/api/v1/issue/issue_recommend', methods=['POST'])
 def issue_recommend():
     data = request.json
-    issue_id = data.get('issue_id')
+    issue_id = int(data.get('issue_id'))  # 이 부분을 수정하여 정수형으로 변환합니다
     title = data.get('title', '')
     description = data.get('description', '')
     category = data.get('category', '')
