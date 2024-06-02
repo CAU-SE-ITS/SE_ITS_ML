@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 from pinecone import Pinecone
 from transformers import BertTokenizer, BertModel
 import torch
-from kobert_transformers import get_tokenizer, get_kobert_model
+from transformers import AutoTokenizer, AutoModel
 
 app = Flask(__name__)
 
@@ -17,9 +17,9 @@ index_name = 'its'
 
 index = pc.Index(index_name)
 
-# KoBERT 모델과 토크나이저 로드
-tokenizer = get_tokenizer()
-model = get_kobert_model()
+# KoBERT 모델과 토크나이저 로드 (Hugging Face를 사용하여 가져오기)
+tokenizer = AutoTokenizer.from_pretrained('monologg/kobert')
+model = AutoModel.from_pretrained('monologg/kobert')
 
 def cosine_similarity_to_percentage(cosine_similarity):
     normalized_similarity = (cosine_similarity + 1) / 2
