@@ -46,7 +46,7 @@ def insert_issue(issue_id, embedding):
 @app.route('/api/v1/issue/issue_recommend', methods=['POST'])
 def issue_recommend():
     data = request.json
-    issue_id = int(data.get('issue_id', ''))
+    issue_id = data.get('issue_id')
     title = data.get('title', '')
     description = data.get('description', '')
     category = data.get('category', '')
