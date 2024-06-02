@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from pinecone import Pinecone
 from transformers import BertTokenizer, BertModel
 import torch
+from kobert_transformers import get_tokenizer, get_kobert_model
 
 app = Flask(__name__)
 
@@ -16,8 +17,9 @@ index_name = 'its'
 
 index = pc.Index(index_name)
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
+# KoBERT 모델과 토크나이저 로드
+tokenizer = get_tokenizer()
+model = get_kobert_model()
 
 def cosine_similarity_to_percentage(cosine_similarity):
     normalized_similarity = (cosine_similarity + 1) / 2

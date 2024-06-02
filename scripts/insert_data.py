@@ -2,6 +2,7 @@ import os
 from pinecone import Pinecone
 from transformers import BertTokenizer, BertModel
 import torch
+from kobert_transformers import get_tokenizer, get_kobert_model
 
 # Pinecone API 키 설정
 API_KEY = 'f9da5978-37e0-4044-855f-9fdd04cd7a03'  # 실제 API 키로 교체
@@ -16,9 +17,9 @@ index_name = 'its'
 # 인덱스에 연결
 index = pc.Index(index_name)
 
-# BERT 모델과 토크나이저 초기화
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
+# KoBERT 모델과 토크나이저 로드
+tokenizer = get_tokenizer()
+model = get_kobert_model()
 
 # 이슈 데이터를 삽입하는 함수
 def insert_issues(issues):
@@ -34,10 +35,18 @@ def insert_issues(issues):
 
 # 테스트 데이터
 test_issues = [
-    {'id': '1', 'title': 'System crash', 'description': 'The system crashes when I try to save a file.', 'category': 'Bug', 'priority': 'High'},
-    {'id': '2', 'title': '404 error', 'description': 'Error 404: Page not found.', 'category': 'Bug', 'priority': 'Medium'},
-    {'id': '3', 'title': 'Application freeze', 'description': 'The application freezes when opening a large document.', 'category': 'Bug', 'priority': 'High'}
+    {'id': '11', 'title': 'System crash', 'description': 'The system crashes when I try to save a file.', 'category': 'Bug', 'priority': 'High'},
+    {'id': '12', 'title': '404 error', 'description': 'Error 404: Page not found.', 'category': 'Bug', 'priority': 'Medium'},
+    {'id': '23', 'title': 'Application freeze', 'description': 'The application freezes when opening a large document.', 'category': 'Bug', 'priority': 'High'},
+    {'id': '34', 'title': '메뉴 오류', 'description': '메뉴에서 특정 항목을 선택할 때 오류가 발생합니다.', 'category': 'Bug', 'priority': 'Low'},
+    {'id': '554', 'title': '로그인 실패', 'description': '사용자가 로그인할 수 없습니다. 비밀번호가 맞는데도 로그인 실패 메시지가 뜹니다.', 'category': 'Bug', 'priority': 'High'},
+    {'id': '66', 'title': 'Slow performance', 'description': 'The application is very slow when processing large datasets.', 'category': 'Performance', 'priority': 'Medium'},
+    {'id': '77', 'title': 'Translation error', 'description': 'The translation for some terms is incorrect.', 'category': 'Localization', 'priority': 'Low'},
+    {'id': '88', 'title': '데이터베이스 연결 실패', 'description': '서버가 데이터베이스에 연결할 수 없습니다. 네트워크 문제로 보입니다.', 'category': 'Bug', 'priority': 'High'},
+    {'id': '99', 'title': 'UI issue', 'description': 'The user interface does not scale properly on high-resolution screens.', 'category': 'UI', 'priority': 'Medium'},
+    {'id': '010', 'title': '보안 문제', 'description': '사용자 데이터가 암호화되지 않은 채로 전송되고 있습니다.', 'category': 'Security', 'priority': 'Critical'}
 ]
+
 
 # 이슈 데이터 삽입
 insert_issues(test_issues)

@@ -5,6 +5,7 @@ from transformers import BertTokenizer, BertModel
 import torch
 import torch.optim as optim
 from tqdm import tqdm
+from kobert_transformers import get_tokenizer, get_kobert_model
 
 # CSV 파일 로드
 data = pd.read_csv('./data/sev.csv')
@@ -49,9 +50,9 @@ class CustomDataset(Dataset):
             'attention_mask': encoding['attention_mask'].flatten()
         }
 
-# 토크나이저 및 모델 로드
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
+# KoBERT 모델과 토크나이저 로드
+tokenizer = get_tokenizer()
+model = get_kobert_model()
 
 # 데이터셋 생성
 train_texts = data['combined_text'].tolist()

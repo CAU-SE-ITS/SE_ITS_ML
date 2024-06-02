@@ -2,6 +2,7 @@ import os
 from pinecone import Pinecone
 from transformers import BertTokenizer, BertModel
 import torch
+from kobert_transformers import get_tokenizer, get_kobert_model
 
 # Pinecone API 키 설정
 API_KEY = 'f9da5978-37e0-4044-855f-9fdd04cd7a03'  # 실제 API 키로 교체
@@ -16,9 +17,9 @@ index_name = 'its'
 # 인덱스에 연결
 index = pc.Index(index_name)
 
-# BERT 모델과 토크나이저 초기화
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
+# KoBERT 모델과 토크나이저 로드
+tokenizer = get_tokenizer()
+model = get_kobert_model()
 
 # 유사한 이슈를 검색하는 함수
 def search_similar_issues(issue, top_k=5):
