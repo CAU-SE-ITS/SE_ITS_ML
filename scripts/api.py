@@ -44,7 +44,7 @@ def search_similar_issues(issue, top_k=5):
 def insert_issue(issue_id, embedding):
     index.upsert([(issue_id, embedding)])
 
-@app.route('/api/v1/issue/recommend', methods=['POST'])
+@app.route('/api/v1/issue/issue_recommend', methods=['POST'])
 def issue_recommend():
     data = request.json
     issue_id = data.get('issue_id', '')
