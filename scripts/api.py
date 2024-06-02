@@ -1,14 +1,12 @@
 import os
 from flask import Flask, request, jsonify
 from pinecone import Pinecone
-from transformers import BertTokenizer, BertModel
-import torch
 from transformers import AutoTokenizer, AutoModel
+import torch
 
 app = Flask(__name__)
 
-# Pinecone API 키 설정
-API_KEY = 'f9da5978-37e0-4044-855f-9fdd04cd7a03'  # 실제 API 키로 교체
+API_KEY = 'f9da5978-37e0-4044-855f-9fdd04cd7a03'  
 os.environ["PINECONE_API_KEY"] = API_KEY
 
 pc = Pinecone(api_key=API_KEY)
@@ -17,7 +15,6 @@ index_name = 'its'
 
 index = pc.Index(index_name)
 
-# KoBERT 모델과 토크나이저 로드 (Hugging Face를 사용하여 가져오기)
 tokenizer = AutoTokenizer.from_pretrained('monologg/kobert')
 model = AutoModel.from_pretrained('monologg/kobert')
 
@@ -33,21 +30,22 @@ def search_similar_issues(issue, top_k=5):
         outputs = model(**inputs)
         query_embedding = outputs.last_hidden_state[:, 0, :].numpy()[0].tolist() 
     
-    results = index.query(vector=query_embedding, top_k=top_k)
+    results = index.query(vector=query_embedding, top_k = 6)
     
     similar_issues = [
         {"issue_id": int(match.id), "score": cosine_similarity_to_percentage(match.score)}
         for match in results.matches
-    ]
+        if int(match.id) != issue['issue_id']  
+    ][:top_k] 
     return similar_issues, query_embedding
 
 def insert_issue(issue_id, embedding):
-    index.upsert([(str(issue_id), embedding)])  # issue_id를 문자열로 변환
+    index.upsert([(str(issue_id), embedding)])
 
 @app.route('/api/v1/issue/issue_recommend', methods=['POST'])
 def issue_recommend():
     data = request.json
-    issue_id = int(data.get('issue_id'))  # 이 부분을 수정하여 정수형으로 변환합니다
+    issue_id = int(data.get('issue_id')) 
     title = data.get('title', '')
     description = data.get('description', '')
     category = data.get('category', '')
