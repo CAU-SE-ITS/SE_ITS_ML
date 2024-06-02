@@ -12,7 +12,6 @@ API_KEY = 'f9da5978-37e0-4044-855f-9fdd04cd7a03'  # 실제 API 키로 교체
 os.environ["PINECONE_API_KEY"] = API_KEY
 
 pc = Pinecone(api_key=API_KEY)
-
 index_name = 'its'
 
 index = pc.Index(index_name)
@@ -36,7 +35,7 @@ def search_similar_issues(issue, top_k=5):
     results = index.query(vector=query_embedding, top_k=top_k)
     
     similar_issues = [
-        {"issue_id": match.id, "score": cosine_similarity_to_percentage(match.score)}
+        {"issue_id": int(match.id), "score": cosine_similarity_to_percentage(match.score)}
         for match in results.matches
     ]
     return similar_issues, query_embedding
