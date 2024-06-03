@@ -32,11 +32,11 @@ model = model.to(device)
 def rescale_scores(scores):
     scores = np.array(scores)
     if len(scores) == 1:
-        return [scores[0]]
+        return [50.0]
     min_score = np.min(scores)
     max_score = np.max(scores)
     if min_score == max_score:
-        return [scores[0]] * len(scores)  # 모든 점수가 동일한 경우, 50.0으로 설정
+        return [50.0] * len(scores)  # 모든 점수가 동일한 경우, 50.0으로 설정
     scaled_scores = (scores - min_score) / (max_score - min_score) * 100
     return scaled_scores.tolist()
 
