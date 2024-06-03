@@ -1,16 +1,15 @@
 import pandas as pd
 import re
 from torch.utils.data import DataLoader, Dataset
-from transformers import BertTokenizer, BertModel
+from transformers import AutoTokenizer, AutoModel
 import torch
 import torch.optim as optim
 from tqdm import tqdm
 from kobert_transformers import get_tokenizer, get_kobert_model
 
 # CSV 파일 로드
-data = pd.read_csv('./data/sev.csv')
+data = pd.read_csv('./data/sev_translated.csv')
 
-# 불필요한 텍스트 제거 함수
 def preprocess_text(text):
     text = re.sub(r'\s+', ' ', text)  # 불필요한 공백 제거
     text = re.sub(r'[^\w\s]', '', text)  # 특수 문자 제거
@@ -19,14 +18,11 @@ def preprocess_text(text):
     text = re.sub(r'\b[\w\.-]+@[\w\.-]+\.\w+\b', '', text)  # 이메일 패턴 제거
     return text
 
-# 데이터 전처리
 data['description'] = data['Description'].apply(preprocess_text)
-data = data.rename(columns={'Severity': 'priority'})  # severity를 priority로 변경
+data = data.rename(columns={'Severity': 'priority'})
 
-# 새로운 텍스트 생성
 data['combined_text'] = "Description: " + data['Description'] + " Priority: " + data['priority'].astype(str)
 
-# 커스텀 데이터셋 클래스
 class CustomDataset(Dataset):
     def __init__(self, texts, tokenizer, max_len):
         self.texts = texts
@@ -50,9 +46,8 @@ class CustomDataset(Dataset):
             'attention_mask': encoding['attention_mask'].flatten()
         }
 
-# KoBERT 모델과 토크나이저 로드
-tokenizer = get_tokenizer()
-model = get_kobert_model()
+tokenizer = AutoTokenizer.from_pretrained('monologg/kobert')
+model = AutoModel.from_pretrained('monologg/kobert')
 
 # 데이터셋 생성
 train_texts = data['combined_text'].tolist()
@@ -65,10 +60,8 @@ train_dataset = CustomDataset(
 
 train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
 
-# 옵티마이저 설정
 optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
-# 훈련 루프
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
@@ -84,13 +77,9 @@ for epoch in range(5):
         
         outputs = model(input_ids=input_ids, attention_mask=attention_mask)
         embeddings = outputs.last_hidden_state[:, 0, :]  # [CLS] 토큰의 임베딩 추출
-        
-        # 그냥 임베딩 추출을 목적으로 하기 때문에 손실 계산과 역전파 과정은 생략합니다.
-        
-        # 필요시 임베딩을 사용해 추가 작업 수행
-        
+
+
     print(f"Epoch {epoch+1} completed")
 
-# 모델 저장
 model.save_pretrained('./model')
 tokenizer.save_pretrained('./model')
