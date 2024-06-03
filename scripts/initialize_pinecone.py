@@ -1,16 +1,19 @@
 import os
-from pinecone import Pinecone, ServerlessSpec
+from os.path import dirname
+from flask import Flask, request, jsonify
+from pinecone import Pinecone
+from transformers import AutoTokenizer,AutoModel,BertTokenizer, BertModel
+import torch
+import numpy as np
+from dotenv import load_dotenv
 
-# Pinecone API 키 설정
-API_KEY = 'f9da5978-37e0-4044-855f-9fdd04cd7a03'  # 실제 API 키로 교체
-os.environ["PINECONE_API_KEY"] = API_KEY
+load_dotenv()
 
-# Pinecone 인스턴스 생성
+API_KEY = os.environ.get('PINECONE_API_KEY')
+
 pc = Pinecone(api_key=API_KEY)
 
-# 인덱스 이름 설정
 index_name = 'its'
 
 index = pc.Index(index_name)
-
 print(f"Connected to index '{index_name}'")

@@ -5,11 +5,13 @@ from pinecone import Pinecone
 from transformers import AutoTokenizer,AutoModel,BertTokenizer, BertModel
 import torch
 import numpy as np
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
-API_KEY = 'f9da5978-37e0-4044-855f-9fdd04cd7a03'
-os.environ["PINECONE_API_KEY"] = API_KEY
+load_dotenv()
+
+API_KEY = os.environ.get('PINECONE_API_KEY')
 
 pc = Pinecone(api_key=API_KEY)
 
@@ -36,7 +38,7 @@ def rescale_scores(scores):
     min_score = np.min(scores)
     max_score = np.max(scores)
     if min_score == max_score:
-        return [50.0] * len(scores)  # 모든 점수가 동일한 경우, 50.0으로 설정
+        return [50.0] * len(scores)  
     scaled_scores = (scores - min_score) / (max_score - min_score) * 100
     return scaled_scores.tolist()
 
