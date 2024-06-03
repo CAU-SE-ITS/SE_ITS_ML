@@ -26,7 +26,7 @@ model = model.to(device)
 
 def cosine_similarity_to_percentage(cosine_similarity):
     normalized_similarity = (cosine_similarity + 1) / 2
-    percentage_similarity = normalized_similarity * 100
+    percentage_similarity = normalized_similarity * 70
     return percentage_similarity
 
 def get_embedding(text):
